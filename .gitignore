@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# LlamaParse / Local Storage
+uploads/
+extracted_images/
+
+# JavaScript / Node
+node_modules/
+.npm
+dist/
+build/
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.bak

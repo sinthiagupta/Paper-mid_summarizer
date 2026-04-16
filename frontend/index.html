@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperMind AI | Research Workspace</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+        <div class="logo">PaperMind AI</div>
+
+        <div class="upload-section">
+            <input type="file" id="pdf-input" style="display: none;" accept=".pdf">
+            <button id="upload-btn" onclick="document.getElementById('pdf-input').click()">+ Upload Paper</button>
+            <p id="upload-status" style="font-size: 0.75rem; margin-top: 5px; color: #818cf8;"></p>
+        </div>
+
+        <div class="paper-list" id="paper-list">
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Loading papers...</p>
+        </div>
+    </aside>
+
+    <!-- MAIN CHAT -->
+    <main id="main">
+        <div id="chat-container">
+            <div class="message bot-message">
+                Hello! Upload a research paper or select one from the sidebar to begin your expert analysis.
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Ask about findings, tables, or methodology..."
+                autocomplete="off">
+            <button id="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+    </main>
+
+    <!-- SUMMARY PANEL -->
+    <aside id="summary-panel">
+        <div class="summary-title">Research Briefing</div>
+        <div id="summary-content" class="summary-content">
+            Select a paper to see its automatic expert summary and key findings here.
+        </div>
+    </aside>
+
+    <script>
+        const API_BASE = "http://localhost:5000";
+        let selectedPaperId = null;
+
+        // --- 1. Load Papers on Start ---
+        async function loadPapers() {
+            try {
+                const res = await fetch(`${API_BASE}/papers`);
+                const papers = await res.json();
+                const list = document.getElementById('paper-list');
+                list.innerHTML = "";
+
+                papers.forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'paper-item';
+                    item.innerText = p.estimated_title || p.file_name;
+                    item.onclick = () => selectPaper(p);
+                    list.appendChild(item);
+                });
+            } catch (e) {
+                console.error("Failed to load papers", e);
+            }
+        }
+
+        // --- 2. Select a Paper ---
+        async function selectPaper(paper) {
+            selectedPaperId = paper.paper_id;
+
+            // Highlight in UI
+            document.querySelectorAll('.paper-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Set Summary
+            document.getElementById('summary-content').innerText = paper.auto_summary || "Summarizing in background...";
+
+            // Load Chat History
+            const res = await fetch(`${API_BASE}/history/${paper.paper_id}`);
+            const history = await res.json();
+
+            const chat = document.getElementById('chat-container');
+            chat.innerHTML = ""; // Clear
+
+            history.forEach(msg => {
+                appendMessage(msg.role === 'user' ? 'user' : 'bot', msg.content);
+            });
+        }
+
+        // --- 3. Send Message ---
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text || !selectedPaperId) return;
+
+            appendMessage('user', text);
+            input.value = "";
+
+            try {
+                const res = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: text, paper_id: selectedPaperId })
+                });
+                const data = await res.json();
+                appendMessage('bot', data.answer);
+            } catch (e) {
+                appendMessage('bot', "Error: Could not reach the AI brain.");
+            }
+        }
+
+        function appendMessage(role, text) {
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            div.className = `message ${role}-message`;
+            div.innerText = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // --- 4. Handle Upload ---
+        document.getElementById('pdf-input').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('upload-status');
+            status.innerText = "🚀 Indexing paper...";
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                status.innerText = "✅ Done! Refresh list.";
+                setTimeout(() => { status.innerText = ""; loadPapers(); }, 2000);
+            } catch (err) {
+                status.innerText = "❌ Upload failed.";
+            }
+        };
+
+        // Initial Load
+        loadPapers();
+    </script>
+</body>
+
+</html>

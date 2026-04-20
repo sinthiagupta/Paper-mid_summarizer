@@ -67,8 +67,21 @@ let activePaperId = null;
 // ==============================================
 // NAVIGATION & MODALS
 // ==============================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log("[SYSTEM] Papermind Frontend Initialized.");
+    
+    // Auto-check connection
+    try {
+        const test = await fetch(`${API}/health`);
+        if (test.ok) {
+            console.log("[SYSTEM] Backend Connection: OK");
+        } else {
+            console.warn("[SYSTEM] Backend returned error status:", test.status);
+        }
+    } catch (err) {
+        console.error("[SYSTEM] Backend UNREACHABLE:", err);
+        // We won't alert here to not annoy the user, but it will be in the F12 console.
+    }
     
     document.getElementById('nav-about')?.addEventListener('click', () => {
         document.getElementById('about-overlay').classList.add('active');

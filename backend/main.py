@@ -26,6 +26,15 @@ from auth import (
 
 app = FastAPI(title="PaperMind API")
 
+# Setup CORS (Allows Frontend to talk to Backend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 def read_root():
     return {"message": "PaperMind AI Backend is LIVE", "docs": "/docs"}
@@ -39,15 +48,6 @@ def health_check():
 # Create folder if missing and mount it so images can be viewed in browser
 os.makedirs("extracted_images", exist_ok=True)
 app.mount("/extracted_images", StaticFiles(directory="extracted_images"), name="extracted_images")
-
-# Setup CORS (Allows Frontend to talk to Backend)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # --- 2. AUTHENTICATION DEPENDENCIES ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")

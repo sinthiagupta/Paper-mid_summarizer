@@ -36,6 +36,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://paper-mid-summarizer.vercel.app",
+        "https://www.paper-mid-summarizer.vercel.app",
         "http://localhost:8000",
         "http://127.0.0.1:8000"
     ],

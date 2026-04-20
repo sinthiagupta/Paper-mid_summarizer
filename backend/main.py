@@ -259,4 +259,7 @@ async def chat_with_paper(request: QueryRequest, current_user: str = Depends(get
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    # Use Render's PORT or fallback to 8000 for local dev
+    port = int(os.getenv("PORT", 8000))
+    print(f"🚀 Starting server on 0.0.0.0:{port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)

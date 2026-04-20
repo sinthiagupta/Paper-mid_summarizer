@@ -125,33 +125,39 @@ def embed_sparse_batch(texts: list[str]) -> list[dict]:
 
 COLLECTION_NAME = "research_papers_v6"
 
-# Initialize Qdrant Collection dynamically
-try:
-    if not qdrant_client.collection_exists(COLLECTION_NAME):
-        qdrant_client.create_collection(
-            collection_name=COLLECTION_NAME,
-            vectors_config={
-                "dense": models.VectorParams(
-                    size=EMBEDDING_DIMENSION,
-                    distance=models.Distance.COSINE,
-                )
-            },
-            sparse_vectors_config={
-                "sparse": models.SparseVectorParams()
-            },
-        )
-        # NEW: Create payload indexes for filtered fields (Required by Qdrant Cloud)
-        qdrant_client.create_payload_index(
-            collection_name=COLLECTION_NAME,
-            field_name="user_id",
-            field_schema=models.PayloadSchemaType.KEYWORD,
-        )
-        qdrant_client.create_payload_index(
-            collection_name=COLLECTION_NAME,
-            field_name="paper_id",
-            field_schema=models.PayloadSchemaType.KEYWORD,
-        )
-except Exception as e:
-    print(f"[QDRANT INIT ERROR] {e}")
+# Initialize Qdrant Collection dynamically (Moved to function to avoid blocking startup)
+def initialize_qdrant():
+    try:
+        print(f"🔍 Checking Qdrant Collection: {COLLECTION_NAME}...")
+        if not qdrant_client.collection_exists(COLLECTION_NAME):
+            print(f"✨ Creating Qdrant Collection: {COLLECTION_NAME}...")
+            qdrant_client.create_collection(
+                collection_name=COLLECTION_NAME,
+                vectors_config={
+                    "dense": models.VectorParams(
+                        size=EMBEDDING_DIMENSION,
+                        distance=models.Distance.COSINE,
+                    )
+                },
+                sparse_vectors_config={
+                    "sparse": models.SparseVectorParams()
+                },
+            )
+            # Create payload indexes for filtered fields
+            qdrant_client.create_payload_index(
+                collection_name=COLLECTION_NAME,
+                field_name="user_id",
+                field_schema=models.PayloadSchemaType.KEYWORD,
+            )
+            qdrant_client.create_payload_index(
+                collection_name=COLLECTION_NAME,
+                field_name="paper_id",
+                field_schema=models.PayloadSchemaType.KEYWORD,
+            )
+            print("✅ Qdrant Collection & Indexes Created.")
+        else:
+            print(f"✅ Qdrant Collection {COLLECTION_NAME} is ready.")
+    except Exception as e:
+        print(f"⚠️ [QDRANT INIT ERROR] {e}")
 
 print("[OK] Shared Cloud Database Clients Initialized.")

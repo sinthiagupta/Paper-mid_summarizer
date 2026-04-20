@@ -23,8 +23,17 @@ from auth import (
     decode_access_token, 
     verify_google_token
 )
+from database import initialize_qdrant
 
 app = FastAPI(title="PaperMind API")
+
+@app.on_event("startup")
+async def startup_event():
+    # Run heavy DB initialization in the background after the port is bound
+    # This prevents Render from timing out during "Port Scanning"
+    import threading
+    threading.Thread(target=initialize_qdrant, daemon=True).start()
+
 
 # Setup CORS (Allows Frontend to talk to Backend)
 app.add_middleware(

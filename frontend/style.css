@@ -1421,40 +1421,37 @@ nav {
 
 .about-content { max-width: 1500px; width: 100%; margin-top: 40px; }
 
- 
- / *   - - -   M A R K D O W N   T A B L E S   - - -   * / 
- # r e s u l t - s u m m a r y   t a b l e   { 
-         w i d t h :   1 0 0 % ; 
-         b o r d e r - c o l l a p s e :   c o l l a p s e ; 
-         m a r g i n :   2 0 p x   0 ; 
-         f o n t - s i z e :   1 4 p x ; 
-         b a c k g r o u n d :   r g b a ( 2 5 5 ,   2 5 5 ,   2 5 5 ,   0 . 0 2 ) ; 
-         b o r d e r - r a d i u s :   8 p x ; 
-         o v e r f l o w :   h i d d e n ; 
-         b o r d e r :   1 p x   s o l i d   r g b a ( 0 ,   2 4 4 ,   1 9 7 ,   0 . 1 ) ; 
- } 
- 
- # r e s u l t - s u m m a r y   t h ,   # r e s u l t - s u m m a r y   t d   { 
-         p a d d i n g :   1 2 p x   1 6 p x ; 
-         t e x t - a l i g n :   l e f t ; 
-         b o r d e r - b o t t o m :   1 p x   s o l i d   r g b a ( 2 5 5 ,   2 5 5 ,   2 5 5 ,   0 . 0 6 ) ; 
- } 
- 
- # r e s u l t - s u m m a r y   t h   { 
-         b a c k g r o u n d :   r g b a ( 0 ,   2 4 4 ,   1 9 7 ,   0 . 0 5 ) ; 
-         c o l o r :   v a r ( - - t e a l ) ; 
-         f o n t - w e i g h t :   6 0 0 ; 
-         t e x t - t r a n s f o r m :   u p p e r c a s e ; 
-         f o n t - s i z e :   1 2 p x ; 
-         l e t t e r - s p a c i n g :   1 p x ; 
- } 
- 
- # r e s u l t - s u m m a r y   t r : l a s t - c h i l d   t d   { 
-         b o r d e r - b o t t o m :   n o n e ; 
- } 
- 
- # r e s u l t - s u m m a r y   t r : h o v e r   { 
-         b a c k g r o u n d :   r g b a ( 2 5 5 ,   2 5 5 ,   2 5 5 ,   0 . 0 4 ) ; 
- } 
-  
- 
+/* --- MARKDOWN TABLES --- */
+#result-summary table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 244, 197, 0.1);
+}
+
+#result-summary th, #result-summary td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#result-summary th {
+    background: rgba(0, 244, 197, 0.05);
+    color: var(--teal);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+#result-summary tr:last-child td {
+    border-bottom: none;
+}
+
+#result-summary tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}

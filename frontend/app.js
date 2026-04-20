@@ -186,11 +186,15 @@ function updateStrength(val) {
 // AUTH
 // ==============================================
 async function handleSignup() {
-    const fn = document.getElementById('join-first-name').value;
-    const ln = document.getElementById('join-last-name').value;
-    const email = document.getElementById('join-email').value;
-    const pwd = document.getElementById('join-password').value;
-    const phone = document.getElementById('join-phone').value;
+    const fn = document.getElementById('join-first-name')?.value || "";
+    const ln = document.getElementById('join-last-name')?.value || "";
+    const email = document.getElementById('join-email')?.value || "";
+    const pwd = document.getElementById('join-password')?.value || "";
+    const phone = document.getElementById('join-phone')?.value || "";
+
+    if (!email || !pwd) { alert("Please fill in Email and Password"); return; }
+
+    console.log(`[AUTH] Attempting Signup at: ${API}/auth/signup`);
 
     try {
         const res = await fetch(`${API}/auth/signup`, {
@@ -200,31 +204,45 @@ async function handleSignup() {
         });
         if (!res.ok) {
             const e = await res.json();
-            throw new Error(e.detail);
+            throw new Error(e.detail || "Signup failed");
         }
-        alert("Account created successfully! Please log in.");
-        document.getElementById('join-password').value = '';
+        alert("Account created! Please log in.");
         switchTab('login');
     } catch (err) {
-        alert(err.message);
+        console.error("Signup Error:", err);
+        alert(`Signup Error: ${err.message}. (Check if Backend is Live)`);
     }
 }
 
 async function handleLogin() {
-    const btn = document.querySelector('#panel-login .btn-submit');
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
+    const email = document.getElementById('login-email')?.value;
+    const password = document.getElementById('login-password')?.value;
+    
+    if (!email || !password) { alert("Please enter email and password"); return; }
+
+    console.log(`[AUTH] Attempting Login at: ${API}/auth/login`);
+
     try {
         const fd = new FormData();
-        fd.append('username', email); fd.append('password', password);
+        fd.append('username', email); 
+        fd.append('password', password);
+
         const res = await fetch(`${API}/auth/login`, { method: 'POST', body: fd });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
+        
+        if (!res.ok) { 
+            const e = await res.json(); 
+            throw new Error(e.detail || "Invalid login credentials"); 
+        }
+
         const data = await res.json();
         authToken = data.access_token;
         sessionStorage.setItem('pm_token', authToken);
         sessionStorage.setItem('pm_email', email);
         enterWorkspace();
-    } catch (err) { alert(`Error: ${err.message}`); }
+    } catch (err) { 
+        console.error("Login Error:", err);
+        alert(`Login failed: ${err.message}. \n\nTip: Make sure you created an account first!`); 
+    }
 }
 
 function enterWorkspace() {

@@ -44,6 +44,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def force_cors_middleware(request, call_next):
+    # Handle preflight OPTIONS requests directly
+    if request.method == "OPTIONS":
+        from fastapi import Response
+        response = Response()
+    else:
+        response = await call_next(request)
+    
+    # Inject CORS headers manually to every response
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "false"
+    
+    return response
+
 @app.get("/")
 def read_root():
     return {"message": "PaperMind AI Backend is LIVE", "docs": "/docs"}

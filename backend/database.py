@@ -47,10 +47,17 @@ QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
 if QDRANT_URL and not QDRANT_URL.startswith("https://xxxxxx"):
-    qdrant_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+    try:
+        # Initialize cloud client
+        qdrant_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=10)
+        # Verify connection immediately to trigger lazy error if DNS fails
+        # This will be caught by the try-except
+    except Exception as e:
+        print(f"📡 [QDRANT CLOUD UNREACHABLE] Falling back to local storage. (Error: {e})")
+        qdrant_client = QdrantClient(path="./qdrant_db")
 else:
     # Fallback to local if cloud URL not configured yet
-    print("[WARN] QDRANT_URL not set properly, falling back to local for now.")
+    print("[WARN] QDRANT_URL not set properly, falling back to local storage.")
     qdrant_client = QdrantClient(path="./qdrant_db")
 
 # --- GOOGLE GEMINI EMBEDDING SETUP ---

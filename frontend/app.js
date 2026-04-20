@@ -59,8 +59,8 @@ function updateProximity(mx, my) {
 // CONFIG
 // ==============================================
 // Automatically detect environment
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API = isLocal ? 'http://localhost:8000' : 'https://papermind-backend.onrender.com'; // We will update this later if Render gives a different URL
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '' || window.location.protocol === 'file:';
+const API = isLocal ? 'http://localhost:8000' : 'https://paper-mid-summarizer.onrender.com';
 let authToken = sessionStorage.getItem('pm_token') || null;
 let activePaperId = null;
 

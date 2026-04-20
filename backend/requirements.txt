@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+python-multipart
 pymongo
 qdrant-client
 langgraph
@@ -15,3 +16,7 @@ portalocker
 numpy
 dnspython
 certifi
+bcrypt
+python-jose[cryptography]
+google-auth
+gunicorn

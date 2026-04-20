@@ -26,6 +26,15 @@ from auth import (
 
 app = FastAPI(title="PaperMind API")
 
+@app.get("/")
+def read_root():
+    return {"message": "PaperMind AI Backend is LIVE", "docs": "/docs"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "timestamp": datetime.utcnow()}
+
+
 # --- 1. CONFIG & STATIC FILES ---
 # Create folder if missing and mount it so images can be viewed in browser
 os.makedirs("extracted_images", exist_ok=True)

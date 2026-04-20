@@ -25,7 +25,8 @@ def get_mongo_db():
             tls=True,
             tlsCAFile=certifi.where(),
             tlsAllowInvalidCertificates=True,
-            serverSelectionTimeoutMS=5000
+            serverSelectionTimeoutMS=30000,
+            connectTimeoutMS=30000
         )
         # Test connection instantly
         client.admin.command('ping')

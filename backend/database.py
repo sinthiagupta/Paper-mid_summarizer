@@ -17,24 +17,28 @@ load_dotenv()
 def get_mongo_db():
     uri = os.getenv("MONGODB_URI")
     if not uri or uri.startswith("mongodb+srv://<username>"):
-        print("[WARN] MONGODB_URI is not set properly in .env.")
+        print("⚠️ WARNING: MONGODB_URI is not set properly in environment variables.")
         return None
+        
     try:
+        # Debug: Print masked URI
+        masked_uri = uri.split("@")[-1] if "@" in uri else "HIDDEN"
+        print(f"📡 Attempting connection to: ...@{masked_uri}")
+        
         client = pymongo.MongoClient(
             uri, 
             tls=True,
             tlsCAFile=certifi.where(),
             tlsAllowInvalidCertificates=True,
             serverSelectionTimeoutMS=30000,
-            connectTimeoutMS=30000
+            connectTimeoutMS=30000,
+            retryWrites=True
         )
-        # Test connection instantly
-        client.admin.command('ping')
+        # We REMOVE the instant 'ping' here to allow the app to scan correctly on Render start.
         return client["research_database"]
     except Exception as e:
-        print(f"\n❌ MONGODB ERROR: {e}")
-        print("FIX: Add your IP to the MongoDB Atlas 'Network Access' Whitelist.\n")
-        raise Exception("MongoDB Connection Failed. Check your IP Whitelist in Atlas.")
+        print(f"\n❌ MONGODB INITIALIZATION ERROR: {e}")
+        return None
 
 mongo_db = get_mongo_db()
 

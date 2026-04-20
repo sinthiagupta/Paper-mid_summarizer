@@ -7,7 +7,7 @@ import concurrent.futures
 from dotenv import load_dotenv
 
 # Import the existing specialized parser tools
-from parser import parse_pdf_to_sections, extract_images_from_pdf, extract_markdown_tables
+from parser import parse_pdf_to_sections, extract_markdown_tables
 from database import mongo_db, qdrant_client, embed_texts, embed_sparse_batch, COLLECTION_NAME
 from summarizer import generate_paper_briefing
 from qdrant_client.http import models as qdrant_models
@@ -58,7 +58,7 @@ def index_in_qdrant(qdrant_docs, qdrant_metadata, qdrant_ids):
 def ingest_paper(pdf_path: str, user_id: str, existing_paper_id: str = None):
     """
     Master Ingestion Orchestrator.
-    Now with Explicit Global Table Extraction.
+    Restored to stable text-only mode (No images).
     """
     paper_id = existing_paper_id or str(uuid.uuid4())
     file_name = os.path.basename(pdf_path)
@@ -71,15 +71,8 @@ def ingest_paper(pdf_path: str, user_id: str, existing_paper_id: str = None):
     if not sections:
         return {"paper_id": paper_id, "summary": "Error: Paper could not be parsed.", "file_name": file_name}
 
-    # B. Extract Global Images
-    image_paths = extract_images_from_pdf(pdf_path)
-    for img_path in image_paths:
-        mongo_db.images.insert_one({
-            "paper_id": paper_id,
-            "user_id": user_id,
-            "image_path": img_path,
-            "extracted_at": datetime.utcnow()
-        })
+    # B. Skip Images (User request: don't do images)
+    image_paths = [] 
 
     # C. GLOBAL TABLE EXTRACTION
     full_text = "\n\n".join([sec["content"] for sec in sections])
@@ -105,7 +98,7 @@ def ingest_paper(pdf_path: str, user_id: str, existing_paper_id: str = None):
         "upload_date": datetime.utcnow(),
         "metrics": {
             "sections": len(sections),
-            "images": len(image_paths),
+            "images": 0,
             "tables": len(global_tables)
         }
     })
@@ -172,5 +165,5 @@ def ingest_paper(pdf_path: str, user_id: str, existing_paper_id: str = None):
         "summary": briefing,
         "file_name": file_name,
         "tables_found": len(global_tables),
-        "images_found": len(image_paths)
+        "images_found": 0
     }

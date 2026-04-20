@@ -1,17 +1,20 @@
-import os
 import shutil
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
-from starlette.concurrency import run_in_threadpool
+import os
 from datetime import datetime
+from typing import List, Optional
+import uuid
 
-# Import our backend logic
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Body
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
+
+# Import our specialized backend logic
 from ingestion import ingest_paper
 from graph_agent import ask_paper_agent
-from mongodb_history import save_chat_message, get_chat_history, list_all_papers
+from mongodb_history import save_chat_message, get_chat_history, list_all_papers, clear_chat_history
 from database import mongo_db
 from auth import (
     get_password_hash, 
@@ -23,7 +26,21 @@ from auth import (
 
 app = FastAPI(title="PaperMind API")
 
-# Setup Auth Security
+# --- 1. CONFIG & STATIC FILES ---
+# Create folder if missing and mount it so images can be viewed in browser
+os.makedirs("extracted_images", exist_ok=True)
+app.mount("/extracted_images", StaticFiles(directory="extracted_images"), name="extracted_images")
+
+# Setup CORS (Allows Frontend to talk to Backend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- 2. AUTHENTICATION DEPENDENCIES ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -33,15 +50,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return email
 
-# Setup CORS for React (Port 3000)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], # More permissive for dev
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# --- 3. MODELS ---
 class UserSignup(BaseModel):
     email: str
     password: str
@@ -49,207 +58,185 @@ class UserSignup(BaseModel):
     last_name: str
     phone: Optional[str] = None
 
-class UserLogin(BaseModel):
-    email: str
-    password: str
-
-class GoogleLoginRequest(BaseModel):
-    token: str # The ID token from Google Frontend
-
 class QueryRequest(BaseModel):
     question: str
-    paper_id: Optional[str] = None # Now optional! System uses last active paper if empty.
+    paper_id: Optional[str] = None
 
-@app.get("/")
-def home():
-    return {"message": "Welcome to PaperMind API"}
+class GoogleLoginRequest(BaseModel):
+    token: str
 
-# --- AUTHENTICATION ROUTES ---
+# --- 4. DATA ASSETS ENDPOINT (For Graphs & Tables) ---
+@app.get("/papers/{paper_id}/assets")
+def get_paper_assets(paper_id: str, current_user: str = Depends(get_current_user)):
+    """Returns all images and tables associated with a paper."""
+    images = list(mongo_db.images.find({"paper_id": paper_id, "user_id": current_user}))
+    tables = list(mongo_db.tables.find({"paper_id": paper_id, "user_id": current_user}))
+    
+    return {
+        "images": [os.path.basename(img["image_path"]) for img in images],
+        "tables": [t["markdown_content"] for t in tables]
+    }
+
+# --- 5. AUTHENTICATION ROUTES ---
 
 @app.post("/auth/signup")
 async def signup(user: UserSignup):
-    """Creates a new user account with full profile details and logs the event."""
     if mongo_db.users.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = get_password_hash(user.password)
-    new_user = {
+    mongo_db.users.insert_one({
         "email": user.email,
         "password": hashed_password,
         "first_name": user.first_name,
         "last_name": user.last_name,
         "phone": user.phone,
         "created_at": datetime.utcnow()
-    }
-    mongo_db.users.insert_one(new_user)
-    
-    # Log Auth History
-    mongo_db.auth_logs.insert_one({
-        "email": user.email,
-        "action": "SIGNUP",
-        "timestamp": datetime.utcnow(),
-        "method": "CREDENTIALS"
     })
-    
     return {"message": "User created successfully"}
+
+@app.post("/auth/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    db_user = mongo_db.users.find_one({"email": form_data.username})
+    if not db_user or not db_user.get("password") or not verify_password(form_data.password, db_user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    access_token = create_access_token(data={"sub": form_data.username})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/auth/google")
 async def google_auth(request: GoogleLoginRequest):
-    """Verifies Google token, creates/finds user, and logs the event."""
     idinfo = verify_google_token(request.token)
     if not idinfo:
         raise HTTPException(status_code=401, detail="Invalid Google Token")
     
     email = idinfo['email']
-    first_name = idinfo.get('given_name', "")
-    last_name = idinfo.get('family_name', "")
-    
-    # Find or Create User
     db_user = mongo_db.users.find_one({"email": email})
     if not db_user:
         mongo_db.users.insert_one({
             "email": email,
-            "first_name": first_name,
-            "last_name": last_name,
+            "first_name": idinfo.get('given_name', ""),
+            "last_name": idinfo.get('family_name', ""),
             "auth_method": "GOOGLE",
             "created_at": datetime.utcnow()
         })
-        print(f"[NEW] New User created via Google: {email}")
-
-    # Log Auth History
-    mongo_db.auth_logs.insert_one({
-        "email": email,
-        "action": "LOGIN",
-        "timestamp": datetime.utcnow(),
-        "method": "GOOGLE"
-    })
     
     access_token = create_access_token(data={"sub": email})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.post("/auth/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    """Logs in and records history. (Supports Swagger Authorize button)"""
-    # Swagger sends 'username', which we use as 'email'
-    db_user = mongo_db.users.find_one({"email": form_data.username})
-    
-    if not db_user or not db_user.get("password") or not verify_password(form_data.password, db_user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    
-    # Log Auth History
-    mongo_db.auth_logs.insert_one({
-        "email": form_data.username,
-        "action": "LOGIN",
-        "timestamp": datetime.utcnow(),
-        "method": "CREDENTIALS"
-    })
-    
-    access_token = create_access_token(data={"sub": form_data.username})
-    return {"access_token": access_token, "token_type": "bearer"}
+# --- 6. PAPER & HISTORY ROUTES ---
 
 @app.get("/papers")
 def get_papers(current_user: str = Depends(get_current_user)):
-    """Returns a list of all papers ONLY for the logged-in user."""
-    try:
-        return list_all_papers(current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return list_all_papers(current_user)
 
 @app.post("/papers/{paper_id}/select")
 def select_paper(paper_id: str, current_user: str = Depends(get_current_user)):
-    """Manually switches the active research context to a specific paper."""
     from mongodb_history import set_active_paper
-    paper = mongo_db.papers.find_one({"paper_id": paper_id, "user_id": current_user})
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found or unauthorized")
-    
     set_active_paper(current_user, paper_id)
-    return {"status": "success", "message": f"Active context switched to paper: {paper_id}"}
+    return {"status": "success"}
 
 @app.get("/history/{paper_id}")
 def get_history(paper_id: str, current_user: str = Depends(get_current_user)):
-    """Retrieves chat history for a specific paper and user."""
-    try:
-        return get_chat_history(current_user, paper_id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_chat_history(current_user, paper_id)
+
+@app.delete("/history/{paper_id}")
+def delete_history(paper_id: str, current_user: str = Depends(get_current_user)):
+    """Clears all chat messages for the current user and the given paper."""
+    deleted_count = clear_chat_history(current_user, paper_id)
+    return {"status": "cleared", "deleted": deleted_count}
 
 @app.get("/papers/{paper_id}/summary")
 def get_paper_summary(paper_id: str, current_user: str = Depends(get_current_user)):
-    """Returns the summary status and content if ready."""
+    paper = mongo_db.papers.find_one({"paper_id": paper_id, "user_id": current_user})
+    if not paper: raise HTTPException(status_code=404, detail="Not found")
+    return {
+        "summary": paper.get("auto_summary", "Processing..."),
+        "is_ready": paper.get("status") == "ready"
+    }
+
+@app.delete("/papers/{paper_id}")
+def delete_paper(paper_id: str, current_user: str = Depends(get_current_user)):
+    """Permanently removes a paper and ALL its associated data for the current user."""
+    # Verify the paper belongs to this user
     paper = mongo_db.papers.find_one({"paper_id": paper_id, "user_id": current_user})
     if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
-    
-    status = paper.get("status", "processing")
-    summary = paper.get("auto_summary")
-    
-    return {
-        "paper_id": paper_id,
-        "status": status,
-        "summary": summary if status == "ready" else "Summary is being generated in the background. Please check back in a moment.",
-        "is_ready": status == "ready"
-    }
+        raise HTTPException(status_code=404, detail="Paper not found or access denied")
+
+    # 1. Wipe all MongoDB collections for this paper
+    mongo_db.papers.delete_one({"paper_id": paper_id, "user_id": current_user})
+    mongo_db.chat_history.delete_many({"paper_id": paper_id, "user_id": current_user})
+    mongo_db.sections.delete_many({"paper_id": paper_id, "user_id": current_user})
+    mongo_db.tables.delete_many({"paper_id": paper_id, "user_id": current_user})
+    mongo_db.images.delete_many({"paper_id": paper_id, "user_id": current_user})
+
+    # 2. Wipe Qdrant vectors for this paper
+    try:
+        from database import qdrant_client, COLLECTION_NAME
+        from qdrant_client.http import models as qmodels
+        qdrant_client.delete(
+            collection_name=COLLECTION_NAME,
+            points_selector=qmodels.FilterSelector(
+                filter=qmodels.Filter(
+                    must=[
+                        qmodels.FieldCondition(key="paper_id", match=qmodels.MatchValue(value=paper_id)),
+                        qmodels.FieldCondition(key="user_id", match=qmodels.MatchValue(value=current_user)),
+                    ]
+                )
+            )
+        )
+    except Exception as e:
+        print(f"[WARN] Could not delete Qdrant vectors: {e}")
+
+    # 3. Clear active paper pointer if it was this paper
+    mongo_db.users.update_one(
+        {"email": current_user, "active_paper_id": paper_id},
+        {"$unset": {"active_paper_id": ""}}
+    )
+
+    return {"status": "deleted", "paper_id": paper_id}
+
+
+# --- 7. CORE PROCESSING ROUTES ---
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
-    """Handles PDF upload and returns EVERYTHING (Summary + ID) in one go."""
     try:
         os.makedirs("./uploads", exist_ok=True)
         file_path = f"./uploads/{file.filename}"
-        
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        import uuid
         paper_id = str(uuid.uuid4())
-        print(f"[START] Processing Paper: {file.filename} (ID: {paper_id})...")
-        
-        # 1. Block and wait for Ingestion + Summary
-        from ingestion import ingest_paper
+        # Run heavy ingestion in a threadpool to keep the server responsive
         result = await run_in_threadpool(ingest_paper, file_path, user_id=current_user, existing_paper_id=paper_id)
         
-        # 2. Automatically set as active
         from mongodb_history import set_active_paper
         set_active_paper(current_user, paper_id)
         
         return {
-            "status": "success",
             "paper_id": paper_id,
             "summary": result.get("summary"),
-            "message": "Paper ingested and summarized successfully. You can chat now!"
+            "status": "success"
         }
     except Exception as e:
-        print(f"[ERROR] Upload Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
 async def chat_with_paper(request: QueryRequest, current_user: str = Depends(get_current_user)):
-    """Passes user question to the Agent and saves context automatically."""
     try:
-        # Determine the target paper ID (Request ID or Fallback to Active Session)
         from mongodb_history import get_active_paper
         paper_id = request.paper_id or get_active_paper(current_user)
-        
-        if not paper_id:
-            raise HTTPException(
-                status_code=400, 
-                detail="No paper context found. Please upload a paper or select one first."
-            )
+        if not paper_id: raise HTTPException(status_code=400, detail="No paper selected")
             
-        # 1. Save user message
         save_chat_message(current_user, paper_id, "user", request.question)
-        
-        # 2. Get Agent response (Now with User + Paper Isolation!)
-        print(f"[USER] User {current_user} Question (Paper {paper_id}): {request.question}")
         answer = ask_paper_agent(request.question, paper_id, current_user)
+        # Guarantee the answer is always a plain string — never an object
+        answer_str = answer if isinstance(answer, str) else str(answer)
+        save_chat_message(current_user, paper_id, "assistant", answer_str)
         
-        # 3. Save assistant response
-        save_chat_message(current_user, paper_id, "assistant", str(answer))
-        
-        return {"answer": answer, "paper_id": paper_id} # Return ID so frontend knows which paper was used
+        return {"answer": answer_str, "paper_id": paper_id}
     except Exception as e:
-        print(f"[ERROR] Chat Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

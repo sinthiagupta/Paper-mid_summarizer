@@ -2,6 +2,8 @@ import os
 import requests
 import numpy as np
 import pymongo
+import certifi
+import concurrent.futures
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
@@ -12,12 +14,28 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 load_dotenv()
 
 # --- CLOUD MONGODB SETUP ---
-MONGO_URI = os.getenv("MONGODB_URI")
-if not MONGO_URI or MONGO_URI.startswith("mongodb+srv://<username>"):
-    print("[WARN] MONGODB_URI is not set to a real value in .env. It will fail if you try to connect.")
+def get_mongo_db():
+    uri = os.getenv("MONGODB_URI")
+    if not uri or uri.startswith("mongodb+srv://<username>"):
+        print("[WARN] MONGODB_URI is not set properly in .env.")
+        return None
+    try:
+        client = pymongo.MongoClient(
+            uri, 
+            tls=True,
+            tlsCAFile=certifi.where(),
+            tlsAllowInvalidCertificates=True,
+            serverSelectionTimeoutMS=5000
+        )
+        # Test connection instantly
+        client.admin.command('ping')
+        return client["research_database"]
+    except Exception as e:
+        print(f"\n❌ MONGODB ERROR: {e}")
+        print("FIX: Add your IP to the MongoDB Atlas 'Network Access' Whitelist.\n")
+        raise Exception("MongoDB Connection Failed. Check your IP Whitelist in Atlas.")
 
-mongo_client = pymongo.MongoClient(MONGO_URI)
-mongo_db = mongo_client["research_database"]
+mongo_db = get_mongo_db()
 
 # --- CLOUD QDRANT SETUP ---
 QDRANT_URL = os.getenv("QDRANT_URL")

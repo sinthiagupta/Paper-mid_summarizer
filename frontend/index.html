@@ -4,158 +4,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PaperMind AI | Research Workspace</title>
+    <title>Papermind | AI Research Intelligence</title>
+
+    <!-- Premium Fonts: Inter (400, 600, 700) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 </head>
 
 <body>
 
-    <!-- SIDEBAR -->
-    <aside id="sidebar">
-        <div class="logo">PaperMind AI</div>
+    <div id="bg-container"></div>
+    <div id="cursor" class="custom-cursor"></div>
 
-        <div class="upload-section">
-            <input type="file" id="pdf-input" style="display: none;" accept=".pdf">
-            <button id="upload-btn" onclick="document.getElementById('pdf-input').click()">+ Upload Paper</button>
-            <p id="upload-status" style="font-size: 0.75rem; margin-top: 5px; color: #818cf8;"></p>
+    <nav>
+        <div class="header-left">
+            <div class="logo-symbol"></div>
+            <div class="logo-name" id="typewriter-logo"></div>
+        </div>
+        <div class="header-right">
+            <span class="nav-link" id="nav-about" data-text="About">About</span>
+            <span class="nav-link" id="nav-login" data-text="Login">Login</span>
         </div>
 
-        <div class="paper-list" id="paper-list">
-            <p style="color: var(--text-muted); font-size: 0.8rem;">Loading papers...</p>
-        </div>
-    </aside>
+    </nav>
 
-    <!-- MAIN CHAT -->
-    <main id="main">
-        <div id="chat-container">
-            <div class="message bot-message">
-                Hello! Upload a research paper or select one from the sidebar to begin your expert analysis.
+    <main class="hero-container">
+        <div class="hero-content">
+            <!-- H1: Main Headline (White) -->
+            <h1 class="hero-h1">Unlock the intelligence hidden in your research.</h1>
+
+            <!-- H2 Block: Highlight Chip + Accent Text (Teal) -->
+            <div class="hero-accent-row">
+                <span class="highlight-chip">Papermind</span>
+                <span class="hero-h2">uses AI agents to ingest complex PDFs,</span>
             </div>
-        </div>
 
-        <div class="input-area">
-            <input type="text" id="user-input" placeholder="Ask about findings, tables, or methodology..."
-                autocomplete="off">
-            <button id="send-btn" onclick="sendMessage()">Send</button>
+            <!-- Body subtext (Muted) -->
+            <p class="hero-body">
+                extract deep insights, and let you chat with your data in real-time.
+            </p>
+
+            <button class="btn-cta" id="btn-get-started">GET STARTED →</button>
         </div>
     </main>
 
-    <!-- SUMMARY PANEL -->
-    <aside id="summary-panel">
-        <div class="summary-title">Research Briefing</div>
-        <div id="summary-content" class="summary-content">
-            Select a paper to see its automatic expert summary and key findings here.
+    <!-- ABOUT PAGE (Full Attractive Summary) -->
+    <div id="about-overlay" class="overlay about-full">
+        <button class="close-btn exit-about" onclick="closeAll()">EXIT ✕</button>
+        <div class="about-content">
+            <h1 class="about-hero">Research, <br><span class="teal-text">Redefined.</span></h1>
+
+            <div class="about-grid">
+                <!-- Benefit 1 -->
+                <div class="about-card">
+                    <span class="card-icon">⚡</span>
+                    <h3>Instant Clarity</h3>
+                    <p>Stop scanning thousands of lines. Our AI identifies the core thesis and key findings of any
+                        research paper in seconds, not hours.</p>
+                </div>
+
+                <!-- Benefit 2 -->
+                <div class="about-card">
+                    <span class="card-icon">🧠</span>
+                    <h3>Deep Context</h3>
+                    <p>Don't just read—interact. Ask complex questions about the data and get answers with direct
+                        citations from the source material.</p>
+                </div>
+
+                <!-- Benefit 3 -->
+                <div class="about-card">
+                    <span class="card-icon">🔒</span>
+                    <h3>Secure Environment</h3>
+                    <p>Your research is sensitive. Papermind provides an encrypted, private space where your documents
+                        and insights are yours alone.</p>
+                </div>
+            </div>
         </div>
-    </aside>
+    </div>
+    <div id="auth-overlay" class="overlay">
+        <div class="split-modal">
+            <button class="close-btn" onclick="closeAll()">✕</button>
 
-    <script>
-        const API_BASE = "http://localhost:5000";
-        let selectedPaperId = null;
+            <!-- LEFT: LOGIN -->
+            <div class="split-panel panel-login active" id="panel-login" onclick="switchTab('login')">
+                <div class="inactive-wrap">
+                    <div class="inactive-icon">🔑</div>
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring ring-2"></div>
+                    <span class="panel-label">LOGIN</span>
+                    <span class="panel-hint">click to sign in</span>
+                </div>
+                <div class="panel-form" onclick="event.stopPropagation()">
+                    <div class="brand-mark">
+                        <span class="brand-dot"></span>
+                        <span class="brand-name">PAPERMIND</span>
+                    </div>
+                    <p class="form-subtitle">• WELCOME BACK</p>
+                    <h2 class="auth-title">Sign in to<br>your account</h2>
+                    <p class="form-desc">Continue where you left off</p>
+                    <button class="google-btn">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
+                        Continue with Google
+                    </button>
+                    <div class="divider"><span>OR EMAIL</span></div>
+                    <div class="float-field">
+                        <input type="email" id="login-email" placeholder=" ">
+                        <label for="login-email">Email address</label>
+                    </div>
+                    <div class="float-field">
+                        <input type="password" id="login-password" placeholder=" ">
+                        <label for="login-password">Password</label>
+                    </div>
+                    <p class="forgot-link">Forgot password?</p>
+                    <button class="btn-submit ripple-btn" onclick="handleLogin()">SIGN IN →</button>
+                    <p class="switch-text">No account? <span onclick="switchTab('join')">Create one</span></p>
+                    <div class="trust-row">
+                        <span>◦ SOC2 certified</span>
+                        <span>◦ End-to-end encrypted</span>
+                        <span>◦ No data stored</span>
+                    </div>
+                </div>
+            </div>
 
-        // --- 1. Load Papers on Start ---
-        async function loadPapers() {
-            try {
-                const res = await fetch(`${API_BASE}/papers`);
-                const papers = await res.json();
-                const list = document.getElementById('paper-list');
-                list.innerHTML = "";
+            <!-- RIGHT: SIGNUP -->
+            <div class="split-panel panel-signup" id="panel-signup" onclick="switchTab('join')">
+                <div class="inactive-wrap">
+                    <div class="inactive-icon">✦</div>
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring ring-2"></div>
+                    <span class="panel-label">SIGN UP</span>
+                    <span class="panel-hint">click to create account</span>
+                </div>
+                <div class="panel-form" onclick="event.stopPropagation()">
+                    <div class="brand-mark">
+                        <span class="brand-dot teal"></span>
+                        <span class="brand-name">PAPERMIND</span>
+                    </div>
+                    <p class="form-subtitle teal-label">• GET STARTED FREE</p>
+                    <h2 class="auth-title">Create your<br>account</h2>
+                    <p class="form-desc">Join 12,000+ researchers today</p>
+                    <button class="google-btn">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Sign
+                        up with Google
+                    </button>
+                    <div class="divider"><span>OR EMAIL</span></div>
+                    <div class="input-group">
+                        <div class="float-field">
+                            <input type="text" id="join-first-name" placeholder=" ">
+                            <label for="join-first-name">First Name</label>
+                        </div>
+                        <div class="float-field">
+                            <input type="text" id="join-last-name" placeholder=" ">
+                            <label for="join-last-name">Last Name</label>
+                        </div>
+                    </div>
+                    <div class="float-field">
+                        <input type="email" id="join-email" placeholder=" ">
+                        <label for="join-email">Email address</label>
+                    </div>
+                    <div class="float-field">
+                        <input type="password" id="join-password" placeholder=" " oninput="updateStrength(this.value)">
+                        <label for="join-password">Password</label>
+                    </div>
+                    <div class="strength-meter">
+                        <div class="strength-bar" id="s1"></div>
+                        <div class="strength-bar" id="s2"></div>
+                        <div class="strength-bar" id="s3"></div>
+                        <div class="strength-bar" id="s4"></div>
+                    </div>
+                    <div class="float-field">
+                        <input type="tel" id="join-phone" placeholder=" ">
+                        <label for="join-phone">Phone Number</label>
+                    </div>
+                    <button class="btn-submit ripple-btn" onclick="handleSignup()">GET STARTED →</button>
+                    <p class="switch-text">Have an account? <span onclick="switchTab('login')">Sign in</span></p>
+                    <div class="trust-row">
+                        <span>◦ Free forever plan</span>
+                        <span>◦ No credit card</span>
+                        <span>◦ Cancel anytime</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                papers.forEach(p => {
-                    const item = document.createElement('div');
-                    item.className = 'paper-item';
-                    item.innerText = p.estimated_title || p.file_name;
-                    item.onclick = () => selectPaper(p);
-                    list.appendChild(item);
-                });
-            } catch (e) {
-                console.error("Failed to load papers", e);
-            }
-        }
+    <!-- ========== WORKSPACE VIEW ========== -->
+    <div id="workspace-view" style="display:none; min-height:100vh;">
+        <!-- Workspace Nav -->
+        <nav class="ws-nav">
+            <div class="header-left" onclick="exitWorkspace()">
+                <div class="logo-symbol"></div>
+                <div class="logo-name" data-text="PAPERMIND">PAPERMIND</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;">
+                <span class="ws-user-email" id="ws-user-email"></span>
+                <button class="ws-history-btn" id="btn-history">📋 History</button>
+                <button class="ws-logout-btn" onclick="logOut()">Log Out</button>
+            </div>
+        </nav>
 
-        // --- 2. Select a Paper ---
-        async function selectPaper(paper) {
-            selectedPaperId = paper.paper_id;
+        <div class="ws-main">
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="upload-zone">
+                <div class="upload-icon">📄</div>
+                <h2 class="upload-title">Drop your research paper here</h2>
+                <p class="upload-sub">Supports PDF · Max 50MB</p>
+                <label class="upload-btn" for="file-input">Choose File</label>
+                <input type="file" id="file-input" accept=".pdf" hidden>
+            </div>
 
-            // Highlight in UI
-            document.querySelectorAll('.paper-item').forEach(el => el.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            <!-- Results (shown after upload) -->
+            <div id="results-section" style="display:none; flex-direction:column; gap:20px;">
+                <div class="results-header">
+                    <h2 class="results-title" id="results-paper-name">Analysis Complete</h2>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <span class="results-badge">✓ AI Processed</span>
+                        <button class="ws-logout-btn" onclick="closeActivePaper()">Start New Paper ✕</button>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h3>📋 Summary</h3>
+                    <!-- We use an ID here to inject the "proper" markdown text -->
+                    <div id="result-summary" class="markdown-body">Loading...</div>
+                </div>
 
-            // Set Summary
-            document.getElementById('summary-content').innerText = paper.auto_summary || "Summarizing in background...";
+                <!-- Section for Figures and Graphs -->
+                <div id="figures-section" style="display:none; flex-direction:column; gap:15px;">
+                    <div class="results-header">
+                        <h2 class="results-title">📈 Figures & Graphs</h2>
+                    </div>
+                    <div class="image-gallery" id="image-gallery"></div>
+                </div>
 
-            // Load Chat History
-            const res = await fetch(`${API_BASE}/history/${paper.paper_id}`);
-            const history = await res.json();
+                <!-- Section for Data Tables -->
+                <div id="tables-section" style="display:none; flex-direction:column; gap:15px;">
+                    <div class="results-header">
+                        <h2 class="results-title">📊 Data Tables</h2>
+                    </div>
+                    <div class="tables-grid" id="tables-grid"></div>
+                </div>
+            </div>
 
-            const chat = document.getElementById('chat-container');
-            chat.innerHTML = ""; // Clear
+        <!-- Floating Chat Button -->
+        <button class="chat-fab" id="chat-fab" title="Ask AI about the paper">💬</button>
 
-            history.forEach(msg => {
-                appendMessage(msg.role === 'user' ? 'user' : 'bot', msg.content);
-            });
-        }
+        <!-- Chat Panel -->
+        <div class="chat-panel" id="chat-panel">
+            <div class="chat-header">
+                <span>🤖 Ask about this paper</span>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button id="btn-clear-chat" onclick="clearChat()" title="Clear chat history" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.3)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'">🗑 Clear</button>
+                    <button onclick="toggleChat()">✕</button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="msg bot-msg">Upload a paper and I'll answer your questions about it.</div>
+            </div>
+            <div class="chat-input-row">
+                <input type="text" id="chat-input" placeholder="Ask a question..."
+                    onkeydown="if(event.key==='Enter') sendChat()">
+                <button class="chat-send" onclick="sendChat()">→</button>
+            </div>
+        </div>
 
-        // --- 3. Send Message ---
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const text = input.value.trim();
-            if (!text || !selectedPaperId) return;
+        <!-- History Drawer -->
+        <div class="history-drawer" id="history-drawer">
+            <div class="history-header">
+                <span>📋 Paper History</span>
+                <button onclick="toggleHistory()">✕</button>
+            </div>
+            <div class="history-list" id="history-list">
+                <p style="color:rgba(255,255,255,0.3);padding:20px;font-size:13px;">Loading...</p>
+            </div>
+        </div>
 
-            appendMessage('user', text);
-            input.value = "";
+    </div>
 
-            try {
-                const res = await fetch(`${API_BASE}/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: text, paper_id: selectedPaperId })
-                });
-                const data = await res.json();
-                appendMessage('bot', data.answer);
-            } catch (e) {
-                appendMessage('bot', "Error: Could not reach the AI brain.");
-            }
-        }
 
-        function appendMessage(role, text) {
-            const container = document.getElementById('chat-container');
-            const div = document.createElement('div');
-            div.className = `message ${role}-message`;
-            div.innerText = text;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
 
-        // --- 4. Handle Upload ---
-        document.getElementById('pdf-input').onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
 
-            const status = document.getElementById('upload-status');
-            status.innerText = "🚀 Indexing paper...";
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const res = await fetch(`${API_BASE}/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                status.innerText = "✅ Done! Refresh list.";
-                setTimeout(() => { status.innerText = ""; loadPapers(); }, 2000);
-            } catch (err) {
-                status.innerText = "❌ Upload failed.";
-            }
-        };
-
-        // Initial Load
-        loadPapers();
-    </script>
+    <script src="app.js" defer></script>
 </body>
 
 </html>

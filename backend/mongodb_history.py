@@ -58,6 +58,15 @@ def set_active_paper(user_id: str, paper_id: str):
     )
     print(f"[CONTEXT] User {user_id} now active on paper {paper_id}")
 
+def clear_chat_history(user_id: str, paper_id: str) -> int:
+    """
+    Deletes all chat messages for a specific user and paper.
+    Returns the number of messages deleted.
+    """
+    result = db.chat_history.delete_many({"user_id": user_id, "paper_id": paper_id})
+    print(f"[CLEAR] Deleted {result.deleted_count} messages for User {user_id} on paper {paper_id}")
+    return result.deleted_count
+
 def get_active_paper(user_id: str) -> str:
     """
     Retrieves the last active paper ID for a user.

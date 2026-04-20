@@ -110,7 +110,18 @@ def synthesis_node(state: AgentState):
     """
     
     response = llm.invoke([SystemMessage(content=prompt), HumanMessage(content=state["question"])])
-    return {"final_answer": response.content}
+    
+    # Safely extract text — newer Gemini models can return a list of content parts
+    raw = response.content
+    if isinstance(raw, list):
+        final_text = " ".join(
+            part.get("text", "") if isinstance(part, dict) else str(part)
+            for part in raw
+        )
+    else:
+        final_text = str(raw)
+    
+    return {"final_answer": final_text}
 
 # --- 4. Build the Graph Workflow ---
 workflow = StateGraph(AgentState)

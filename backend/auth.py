@@ -13,7 +13,7 @@ load_dotenv()
 # --- CONFIGURATION ---
 SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-default-key-change-me")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 14400))
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 # --- PASSWORD LOGIC ---

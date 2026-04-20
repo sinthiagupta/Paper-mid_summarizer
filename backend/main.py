@@ -34,13 +34,8 @@ app.mount("/extracted_images", StaticFiles(directory="extracted_images"), name="
 # Setup CORS (Allows Frontend to talk to Backend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://paper-mid-summarizer.vercel.app",
-        "https://www.paper-mid-summarizer.vercel.app",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000"
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
